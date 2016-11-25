@@ -22,6 +22,10 @@ var ANNOUNCE_CHAN = '##crawl-announcements'
 var router = express();
 var server = http.createServer(router);
 
+function pad2(number) {
+    return (number < 10 ? '0' : '') + number;
+}
+
 var DIFFICULTYMAP={'1': 'standard', '2': 'challenge', '3': 'nightmare'};
 function stone_format(stone) {
     return stone['name'] + ' (L' + stone['xl'] + ' ' + stone['char'] + ') ' + stone['milestone'] + ' (' + ((stone['oplace'] && stone['milestone'].search('left') == -1) ? stone['oplace'] : stone['place']) + ') ['+stone['src']+' '+stone['v']+(stone['difficulty'] ? ', '+DIFFICULTYMAP[stone['difficulty']] : '')+']';
