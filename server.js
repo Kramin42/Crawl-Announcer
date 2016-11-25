@@ -1,8 +1,4 @@
-//
-// # SimpleServer
-//
-// A simple chat server using Socket.IO, Express, and Async.
-//
+
 var http = require('http');
 var path = require('path');
 
@@ -11,14 +7,8 @@ var io = require('socket.io-client');
 var express = require('express');
 var irc = require('irc');
 
-var ANNOUNCE_CHAN = '##crawl-announcements'
+var ANNOUNCE_CHAN = '##crawl-announcements';
 
-//
-// ## SimpleServer `SimpleServer(obj)`
-//
-// Creates a new instance of SimpleServer with the following options:
-//  * `port` - The HTTP port to listen on. If `process.env.PORT` is set, _it overrides this value_.
-//
 var router = express();
 var server = http.createServer(router);
 
@@ -48,7 +38,7 @@ function log_format(stone) {
 }
 
 // irc client to post results in ##crawl
-var irc = new irc.Client('chat.freenode.net', 'Kramell2', {
+var client = new irc.Client('chat.freenode.net', 'Kramell2', {
     channels: ['##kramell', ANNOUNCE_CHAN],
 });
 
@@ -63,7 +53,7 @@ socket.on('crawlevent', function(data) {
         var stone = event['data'];
         stone['src'] = event['src_abbr'];
         var announcement = event['type'] == 'milestone' ? stone_format(stone) : log_format(stone);
-        irc.say(ANNOUNCE_CHAN, announcement);
+        client.say(ANNOUNCE_CHAN, announcement);
     });
 });
 
