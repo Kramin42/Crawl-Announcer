@@ -1,0 +1,5 @@
+fixtures:
+    - model: Channel
+      data:
+        name: "##crawl-announcements"
+        relay_enabled: false

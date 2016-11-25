@@ -7,9 +7,13 @@
   "author": "Mostafa Eweda <mo.eweda@gmail.com>",
   "dependencies": {
     "async": "~0.2.8",
+    "bluebird": "^3.4.6",
     "express": "~3.2.4",
     "irc": "^0.5.1",
+    "sequelize": "^3.27.0",
+    "sequelize-fixtures": "^0.5.5",
     "socket.io": "~0.9.14",
-    "socket.io-client": "^1.6.0"
+    "socket.io-client": "^1.6.0",
+    "sqlite3": "^3.1.8"
   }
 }
