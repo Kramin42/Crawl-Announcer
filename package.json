@@ -10,6 +10,7 @@
     "bluebird": "^3.4.6",
     "express": "~3.2.4",
     "irc": "^0.5.1",
+    "request": "^2.79.0",
     "sequelize": "^3.27.0",
     "sequelize-fixtures": "^0.5.5",
     "socket.io": "~0.9.14",

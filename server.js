@@ -2,6 +2,7 @@
 var http = require('http');
 var path = require('path');
 var Promise = require("bluebird");
+var request = require('request');
 
 var async = require('async');
 var io = require('socket.io-client');
@@ -9,13 +10,14 @@ var express = require('express');
 var irc = require('irc');
 const sequelize_fixtures = require('sequelize-fixtures');
 
-var constants = require("./constants.js")
+var constants = require("./constants.js");
 var util = require("./util.js");
 var db = require("./models");
 
 //globals
 var client;
 var delay_avg;
+var event_index; // keeps track of what event I processed last
 
 function init_db() {
     return sequelize_fixtures.loadFile('fixtures/default_channels.yml', db).then(function(){
@@ -55,31 +57,50 @@ function init_irc() {
     });
 }
 
+function process_crawlevent(event) {
+    if (event['id']==null) {console.log('Error: got event with id: null');}
+    if (event_index==null || event_index<event['id']) {// don't double announce
+        db.Channel.all().then(function(channels) {
+            util.announce(client, channels, event);
+        });
+        
+        //track delay
+        var delay = Math.floor(Date.now() / 1000) - parseInt(event['time']);
+        if (delay_avg==null) {delay_avg = delay;}
+        else {
+            delay_avg = (1.0 - constants.delay_avg_p)*delay_avg + constants.delay_avg_p*delay;
+        }
+        
+        //update event_index
+        event_index = event['id'];
+    }
+}
+
 function init_socketio() {
     // socketio to get events from the PubSub service
-    var socket = io.connect('http://125.238.82.167');
-    socket.on('connect', function () { console.log("socket connected"); });
+    var socket = io.connect(constants.pubsub_host);
+    socket.on('connect', function () {
+        console.log('socket connected');
+        request(
+            {baseUrl: constants.pubsub_host,
+            url: '/event',
+            qs: {offset: event_index, limit: constants.catchup_limit}},
+        function (error, response, body) {
+            if (!error && response.statusCode == 200) {
+                var events = JSON.parse(body);
+                events.forEach(process_crawlevent);
+            }
+        });
+    });
     
     socket.on('error', function(err) {
         console.log("Caught socketio error: ");
         console.log(err.stack);
     });
     
-    delay_avg = -1;
     socket.on('crawlevent', function(data) {
         data = JSON.parse(data);
-        data.forEach(function(event) {
-            db.Channel.all().then(function(channels) {
-                util.announce(client, channels, event);
-            });
-            
-            //track delay
-            var delay = Math.floor(Date.now() / 1000) - parseInt(event['time'])
-            if (delay_avg==-1) {delay_avg = delay;}
-            else {
-                delay_avg = (1.0 - constants.delay_avg_p)*delay_avg + constants.delay_avg_p*delay;
-            }
-        });
+        data.forEach(process_crawlevent);
     });
 }
 
