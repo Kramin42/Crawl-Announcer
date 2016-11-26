@@ -13,7 +13,9 @@ var constants = require("./constants.js")
 var util = require("./util.js");
 var db = require("./models");
 
+//globals
 var client;
+var delay_avg;
 
 function init_db() {
     return sequelize_fixtures.loadFile('fixtures/default_channels.yml', db).then(function(){
@@ -58,18 +60,17 @@ function init_socketio() {
     var socket = io.connect('http://125.238.82.167');
     socket.on('connect', function () { console.log("socket connected"); });
     
-    var delay_avg = -1;
+    socket.on('error', function(err) {
+        console.log("Caught socketio error: ");
+        console.log(err.stack);
+    });
+    
+    delay_avg = -1;
     socket.on('crawlevent', function(data) {
         data = JSON.parse(data);
         data.forEach(function(event) {
-            var stone = event['data'];
-            stone['src'] = event['src_abbr'];
-            var announcement = event['type'] == 'milestone' ? util.stone_format(stone) : util.log_format(stone);
-            
             db.Channel.all().then(function(channels) {
-                channels.forEach(function(channel) {
-                    client.say(channel.name, announcement);
-                });
+                util.announce(client, channels, event);
             });
             
             //track delay
@@ -80,7 +81,6 @@ function init_socketio() {
             }
         });
     });
-    return Promise.resolve();
 }
 
 function init_web() {
@@ -92,11 +92,23 @@ function init_web() {
         var addr = server.address();
         console.log("Server listening at", addr.address + ":" + addr.port);
     });
-    return Promise.resolve();
+    
+    server.on('error', function (err) {
+        console.log("Caught server error:");
+        console.log(err.stack);
+    });
 }
 
 init_db()
 .then(init_irc)
-.then(init_socketio)
+.then(init_socketio);
 
-init_web()
+init_web();
+
+// TODO: use a better way of keeping it up
+// not restarting could leave it in a broken state
+// need to find out how to catch the ECONNRESET errors
+process.on('uncaughtException', function (err) {
+    console.error(err.stack);
+    console.log("Node NOT Exiting...");
+});

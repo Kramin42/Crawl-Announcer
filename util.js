@@ -22,5 +22,29 @@ function log_format(stone) {
     var duration = pad2(parseInt(dur / 3600)) + ':' + pad2(parseInt(dur / 60) % 60) + ':' + pad2(dur % 60);
 }
 
+function filter(stone, channel) {
+    return true; // TODO: add filtering system
+}
+
+function colour(announcement, stone, channel) {
+    return announcement; // TODO: add colouring system
+}
+
+function announce(client, channels, event) {
+    var stone = event['data'];
+    stone['src'] = event['src_abbr'].toUpperCase();
+    var announcement = event['type'] == 'milestone' ? stone_format(stone) : log_format(stone);
+    //antiping (disabled)
+    //announcement = [announcement[0], announcement.slice(1)].join('\u200B');
+    channels.forEach(function(channel) {
+        if (filter(stone, channel)) {
+            client.say(channel.name, colour(announcement, stone, channel));
+        }
+    });
+}
+
 exports.log_format = log_format;
 exports.stone_format = stone_format;
+exports.filter = filter;
+exports.colour = colour;
+exports.announce = announce;
