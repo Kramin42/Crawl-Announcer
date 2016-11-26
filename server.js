@@ -87,7 +87,7 @@ function init_socketio() {
             qs: {offset: event_index, limit: constants.catchup_limit}},
         function (error, response, body) {
             if (!error && response.statusCode == 200) {
-                var events = JSON.parse(body);
+                var events = JSON.parse(body)['results'];
                 events.forEach(process_crawlevent);
             }
         });
