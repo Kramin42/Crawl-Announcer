@@ -24,8 +24,86 @@ function log_format(stone) {
     return stone['name'] + ' the ' + stone['title'] + ' (L' + stone['xl'] + ' ' + stone['char'] + ')' + (stone['god'] ? ' worshipper of ' + stone['god'] : '') + ', ' + (stone['vmsg'] !== undefined ? stone['vmsg'] : stone['tmsg']) + loc_string + ', with ' + stone['sc'] + ' points after ' + stone['turn'] + ' turns and ' + duration + '. ['+stone['src']+' '+stone['v']+(stone['difficulty'] ? ', '+constants.difficulty_map[stone['difficulty']] : '')+']';
 }
 
+function match_filter(stone, filter) {
+    //console.log('matching '+JSON.stringify(stone)+'\n to \n'+JSON.stringify(filter));
+    for (var key in filter) {
+        // skip loop if the property is from prototype
+        if (!filter.hasOwnProperty(key)) continue;
+        //console.log('key: '+key);
+        switch (key) {
+            case '$and':
+                if (!filter[key].every(function(subfilter) {return match_filter(stone, subfilter);}))
+                    //console.log('failed key: '+key+', value: '+JSON.stringify(filter[key]));
+                    return false;
+                break;
+            case '$or':
+                if (!filter[key].some(function(subfilter) {return match_filter(stone, subfilter);}))
+                    //console.log('failed key: '+key+', value: '+JSON.stringify(filter[key]));
+                    return false;
+                break;
+            case '$not':
+                if (match_filter(stone, filter[key])) {
+                    //console.log('failed key: '+key+', value: '+JSON.stringify(filter[key]));
+                    return false;
+                }
+                break;
+            
+            default:
+                if (key in stone) {
+                    //console.log('matching value '+JSON.stringify(stone[key])+' to '+JSON.stringify(filter[key]));
+                    if (typeof filter[key] === 'string') {
+                        if (stone[key]!=filter[key]) {
+                            console.log('failed key: '+key+', value: '+filter[key]+', was: '+stone[key]);
+                            return false;
+                        }
+                    } else {
+                        var op = Object.keys(filter[key])[0];
+                        switch (op) {
+                            case '$in':
+                                if (filter[key][op].indexOf(stone[key])==-1) {
+                                    console.log('failed key: '+key+', value: '+JSON.stringify(filter[key])+', was: '+stone[key]);
+                                    return false;
+                                }
+                                break;
+                            case '$gt':
+                                if (stone[key]<=filter[key][op]) {
+                                    console.log('failed key: '+key+', value: '+JSON.stringify(filter[key])+', was: '+stone[key]);
+                                    return false;}
+                                break;
+                            case '$lt':
+                                if (stone[key]>=filter[key][op]) {
+                                    console.log('failed key: '+key+', value: '+JSON.stringify(filter[key])+', was: '+stone[key]);
+                                    return false;}
+                                break;
+                            case '$neq':
+                                if (stone[key]==filter[key][op]) {
+                                    console.log('failed key: '+key+', value: '+filter[key]+', was: '+stone[key]);
+                                    return false;}
+                                break;
+                            
+                            default:
+                                console.log('failed because not string or op, key: '+key+', value: '+filter[key]+', typeof value: '+(typeof filter[key]));
+                                return false;
+                        }
+                    }
+                } else {
+                    console.log('failed because key not found: '+key);
+                    return false;
+                }
+        }
+    }
+    return true;
+}
+
 function filter(stone, channel) {
-    return true; // TODO: add filtering system
+    try {
+        var filter = JSON.parse(channel.filter);
+        console.log('matching:\n'+JSON.stringify(stone));
+        return match_filter(stone, filter);
+    } catch (err) {
+        console.log(err);
+        return false;
+    }
 }
 
 function colour(announcement, stone, channel) {

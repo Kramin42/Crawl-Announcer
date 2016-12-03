@@ -3,3 +3,21 @@ fixtures:
       data:
         name: "##crawl-announcements"
         relay_enabled: false
+        filter: |
+                {
+                    "src": {"$in": ["CPO", "CBRO", "CUE", "CAO"]},
+                    "$or": [
+                        {"type": "orb"},
+                        {"type": "br.enter",  "br": {"$in": ["Pan","Tomb","Geh","Dis","Tar","Coc","Zot"]}},
+                        {"type": "br.end", "br": {"$in": ["Swamp","Spider","Shoals","Snake","Zot","Vaults","Abyss"]}},
+                        {"type": "zig", "lvl": {"$in" : ["14","18","21","24","27"]}},
+                        {"type": "zig.exit"},
+                        {"type": "abyss.exit"},
+                        {"type": "abyss.enter"},
+                        {"type": "rune", "urune": {"$in": ["1","3"]}},
+                        {"ktyp": {"$neq": "winning"}, "xl": {"$gt": 15}},
+                        {"ktyp": "winning"}
+                    ]
+                }
+# add server list later
+#                     "src": {"$in": ["CPO", "CBRO", "CUE", "CAO"]},

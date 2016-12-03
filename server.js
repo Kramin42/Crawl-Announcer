@@ -26,6 +26,7 @@ function init_db() {
     return sequelize_fixtures.loadFile('fixtures/default_channels.yml', db).then(function(){
         db.Channel.all().then(function(channels) {
             console.log('Channels: ' + channels.map(function(chan){return chan.name;}).join(', '));
+            console.log(channels[0].filter);
         });
     });
 }
@@ -52,10 +53,6 @@ function init_irc() {
                     client.say(chan, [
                         'average delay recently: ' + delay_avg.toFixed(1) + ' sec',
                         'total missed since restart: ' + missed].join('; '));
-                }
-                
-                if (args[0]=='missed') {
-                    client.say(chan, 'total missed since restart: ' + missed);
                 }
             }
         });
