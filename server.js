@@ -36,9 +36,15 @@ function init_db() {
 function init_irc() {
     // irc client to post results in ##crawl
     return db.Channel.all().then(function(channels) {
-        client = new irc.Client('chat.freenode.net', constants.nick, {
+    	var options = {
+    		server: 'chat.freenode.net',
+    		nick: constants.nick,
+    		sasl: constants.sasl,
+        	userName: constants.nick,
+        	password: constants.password,
             channels: ['##kramell'].concat(channels.map(function(chan){return chan.name;}))
-        });
+    	};
+        client = new irc.Client(options.server, options.nick, options);
         
         client.addListener('message', function (from, to, message) {
             var chan = to;
