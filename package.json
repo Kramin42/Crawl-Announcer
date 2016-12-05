@@ -2,6 +2,9 @@
   "name": "crawl-announcer",
   "version": "0.0.0",
   "description": "An IRC announcer for DCSS",
+  "scripts": {
+    "start": "node server.js"
+  },
   "main": "server.js",
   "repository": "",
   "author": "Cameron Dykstra <dykstra.cameron@gmail.com>",
