@@ -5,8 +5,9 @@
     "database": "database",
     "host": "localhost",
     "dialect": "sqlite",
-    "storage": "./store.db",
-    "logging": false
+    "storage": "./store-dev.db",
+    "logging": false,
+    "irc-nick": "Kramell2"
   },
   "production": {
     "username": "username",
@@ -15,6 +16,7 @@
     "host": "localhost",
     "dialect": "sqlite",
     "storage": "./store.db",
-    "logging": false
+    "logging": false,
+    "irc-nick": "Postquell"
   }
 }

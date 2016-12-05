@@ -9,6 +9,7 @@ var async = require('async');
 var io = require('socket.io-client');
 var express = require('express');
 var irc = require('irc');
+var Sequelize = require('sequelize');
 const sequelize_fixtures = require('sequelize-fixtures');
 
 var constants = require("./constants.js");
@@ -23,6 +24,7 @@ var event_index; // keeps track of what event I processed last
 var catchup_done = Promise.resolve(true);
 
 function init_db() {
+	db.sequelize.sync();
     return sequelize_fixtures.loadFile('fixtures/default_channels.yml', db).then(function(){
         db.Channel.all().then(function(channels) {
             console.log('Channels: ' + channels.map(function(chan){return chan.name;}).join(', '));
