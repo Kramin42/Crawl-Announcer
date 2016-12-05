@@ -1,10 +1,10 @@
 {
-  "name": "chat-example",
+  "name": "crawl-announcer",
   "version": "0.0.0",
-  "description": "A chat example to showcase how to use `socket.io` with a static `express` server with `async` for control flow.",
+  "description": "An IRC announcer for DCSS",
   "main": "server.js",
   "repository": "",
-  "author": "Mostafa Eweda <mo.eweda@gmail.com>",
+  "author": "Cameron Dykstra <dykstra.cameron@gmail.com>",
   "dependencies": {
     "async": "~0.2.8",
     "bluebird": "^3.4.6",
