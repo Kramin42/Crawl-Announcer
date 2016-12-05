@@ -5,6 +5,7 @@
     "database": "database",
     "host": "localhost",
     "dialect": "sqlite",
-    "storage": "./store.db"
+    "storage": "./store.db",
+    "logging": false
   }
 }

@@ -53,7 +53,7 @@ function match_filter(stone, filter) {
                     //console.log('matching value '+JSON.stringify(stone[key])+' to '+JSON.stringify(filter[key]));
                     if (typeof filter[key] === 'string') {
                         if (stone[key]!=filter[key]) {
-                            console.log('failed key: '+key+', value: '+filter[key]+', was: '+stone[key]);
+                            //console.log('failed key: '+key+', value: '+filter[key]+', was: '+stone[key]);
                             return false;
                         }
                     } else {
@@ -61,33 +61,33 @@ function match_filter(stone, filter) {
                         switch (op) {
                             case '$in':
                                 if (filter[key][op].indexOf(stone[key])==-1) {
-                                    console.log('failed key: '+key+', value: '+JSON.stringify(filter[key])+', was: '+stone[key]);
+                                    //console.log('failed key: '+key+', value: '+JSON.stringify(filter[key])+', was: '+stone[key]);
                                     return false;
                                 }
                                 break;
                             case '$gt':
                                 if (stone[key]<=filter[key][op]) {
-                                    console.log('failed key: '+key+', value: '+JSON.stringify(filter[key])+', was: '+stone[key]);
+                                    //console.log('failed key: '+key+', value: '+JSON.stringify(filter[key])+', was: '+stone[key]);
                                     return false;}
                                 break;
                             case '$lt':
                                 if (stone[key]>=filter[key][op]) {
-                                    console.log('failed key: '+key+', value: '+JSON.stringify(filter[key])+', was: '+stone[key]);
+                                    //console.log('failed key: '+key+', value: '+JSON.stringify(filter[key])+', was: '+stone[key]);
                                     return false;}
                                 break;
                             case '$neq':
                                 if (stone[key]==filter[key][op]) {
-                                    console.log('failed key: '+key+', value: '+filter[key]+', was: '+stone[key]);
+                                    //console.log('failed key: '+key+', value: '+filter[key]+', was: '+stone[key]);
                                     return false;}
                                 break;
                             
                             default:
-                                console.log('failed because not string or op, key: '+key+', value: '+filter[key]+', typeof value: '+(typeof filter[key]));
+                                //console.log('failed because not string or op, key: '+key+', value: '+filter[key]+', typeof value: '+(typeof filter[key]));
                                 return false;
                         }
                     }
                 } else {
-                    console.log('failed because key not found: '+key);
+                    //console.log('failed because key not found: '+key);
                     return false;
                 }
         }
@@ -98,7 +98,7 @@ function match_filter(stone, filter) {
 function filter(stone, channel) {
     try {
         var filter = JSON.parse(channel.filter);
-        console.log('matching:\n'+JSON.stringify(stone));
+        //console.log('matching:\n'+JSON.stringify(stone));
         return match_filter(stone, filter);
     } catch (err) {
         console.log(err);
