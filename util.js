@@ -123,8 +123,46 @@ function announce(client, channels, event) {
     });
 }
 
+function multiindex_get(key, obj) {
+    keys = key.split('.');
+    sub = obj;
+    for (var i=0; i<keys.length; i++) {
+        sub = sub[keys[i]];
+    }
+    return sub;
+}
+
+function multiindex_set(key, obj, val) {
+    keys = key.split('.');
+    sub = obj;
+    for (var i=0; i<keys.length-1; i++) {
+        sub = sub[keys[i]];
+    }
+    sub[keys[keys.length-1]] = val;
+    return obj;
+}
+
+function multiindex_del(key, obj) {
+    keys = key.split('.');
+    sub = obj;
+    for (var i=0; i<keys.length-1; i++) {
+        sub = sub[keys[i]];
+    }
+    var deleted;
+    if (sub instanceof Array) {
+        deleted = sub.splice(keys[keys.length-1], 1)[0];
+    } else {
+        deleted = sub[keys[keys.length-1]];
+        delete sub[keys[keys.length-1]];
+    }
+    return deleted;
+}
+
 exports.log_format = log_format;
 exports.stone_format = stone_format;
 exports.filter = filter;
 exports.colour = colour;
 exports.announce = announce;
+exports.multiindex_get = multiindex_get;
+exports.multiindex_set = multiindex_set;
+exports.multiindex_del = multiindex_del;

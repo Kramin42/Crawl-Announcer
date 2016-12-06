@@ -23,6 +23,93 @@ var missed = 0;
 var event_index; // keeps track of what event I processed last
 var catchup_done = Promise.resolve(true);
 
+function command(cmd, args, chan, nick, authed) {
+    var admin = authed && constants.admins.indexOf(nick)>-1;
+    console.log('command: ' + cmd + ', args: ' + args + ', admin: ' + admin);
+
+    if (cmd=='stats' && admin) {
+        client.say(chan, [
+            'average delay recently: ' + delay_avg.toFixed(1) + ' sec',
+            'total missed since restart: ' + missed].join('; '));
+    }
+
+    if (cmd=='filter' && admin) {
+        var help_string = 'Usage: filter <set|show|add|del> [key] [JSON]';
+        db.Channel.findOne({where: {name: chan}}).then(function(channel) {
+            var filter = JSON.parse(channel.filter)
+            if (args.length==0) {
+                client.say(chan, help_string);
+            } else {
+                switch(args[0]) {
+                    case 'show':
+                        if (args.length==1) client.say(chan, JSON.stringify(filter));
+                        else {
+                            var subfilter = util.multiindex_get(args[1], filter);
+                            client.say(chan, JSON.stringify(subfilter));
+                        }
+                        break;
+                    case 'set':
+                        if (args.length<3) client.say(chan, 'Usage: filter set <key> <JSON>');
+                        else {
+                            try {
+                                util.multiindex_set(args[1], filter, JSON.parse(args.slice(2).join(' ')));
+                                channel.filter=JSON.stringify(filter);
+                                channel.save().then(function(val) {
+                                    client.say(chan, args[1]+' set to '+JSON.stringify(util.multiindex_get(args[1], filter)));
+                                });
+                            } catch(err) {
+                                console.log(err);
+                                if (err.name=='SyntaxError') {
+                                    client.say(chan, args.slice(2).join(' ')+' is not valid JSON');
+                                }
+                            }
+                        }
+                        break;
+                    case 'add':
+                        if (args.length<3) client.say(chan, 'Usage: filter add <key(of list)> <JSON>');
+                        else {
+                            try {
+                                var subfilter = util.multiindex_get(args[1], filter);
+                                if (subfilter instanceof Array) {
+                                    subfilter.push(JSON.parse(args.slice(2).join(' ')));
+                                    channel.filter=JSON.stringify(filter);
+                                    channel.save().then(function(val) {
+                                        client.say(chan, args[1]+' appended with '+JSON.stringify(util.multiindex_get(args[1], filter).slice(-1)[0]));
+                                    });
+                                } else {
+                                    client.say(chan, 'Error: '+args[1]+' is not a list!');
+                                }
+                            } catch(err) {
+                                console.log(err);
+                                if (err.name=='SyntaxError') {
+                                    client.say(chan, args.slice(2).join(' ')+' is not valid JSON');
+                                }
+                            }
+                        }
+                        break;
+                    case 'del':
+                        if (args.length<2) client.say(chan, 'Usage: filter del <key>');
+                        else {
+                            try {
+                                var deleted = util.multiindex_del(args[1], filter);
+                                channel.filter=JSON.stringify(filter);
+                                channel.save().then(function(val) {
+                                    client.say(chan, args[1]+' deleted, was '+JSON.stringify(deleted));
+                                });
+                            } catch(err) {
+                                console.log(err);
+                            }
+                        }
+                        break;
+                    default:
+                        client.say(chan, help_string);
+                        break;
+                }
+            }
+        });
+    }
+}
+
 function init_db() {
 	db.sequelize.sync();
     return sequelize_fixtures.loadFile('fixtures/default_channels.yml', db).then(function(){
@@ -47,22 +134,26 @@ function init_irc() {
         client = new irc.Client(options.server, options.nick, options);
         
         client.addListener('message', function (from, to, message) {
+            console.log(message);
+            var authed = message[0] == '+';
+            message = message.substring(1)
             var chan = to;
             var pm = false;
+            var nick = from;
             if (to==constants.nick) {
                 chan = from;
                 pm = true;
             }
             
             if (message[0]=='$') {
-                var args = message.substring(1).split();
-                console.log('command: ' + args);
-                if (args[0]=='stats') {
-                    client.say(chan, [
-                        'average delay recently: ' + delay_avg.toFixed(1) + ' sec',
-                        'total missed since restart: ' + missed].join('; '));
-                }
+                var args = message.substring(1).split(' ');
+                command(args[0], args.slice(1), chan, nick, authed);
             }
+        });
+
+        client.addListener('registered', function(message) {
+            client.send('CAP','REQ','identify-msg');
+            client.send('CAP','END');
         });
         
         client.on('error', function(e) {
