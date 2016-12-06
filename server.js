@@ -173,23 +173,26 @@ function process_crawlevent(event) {
     console.log(event['id']);
     if (event['id']==null) {console.log('Error: got event with id: null');}
     if (event_index==null || event_index<event['id']) {// don't double announce
-        db.Channel.all().then(function(channels) {
-            util.announce(client, channels, event);
-        });
-        
         //track delay
         var delay = Math.floor(Date.now() / 1000) - parseInt(event['time']);
         if (delay_avg==null) {delay_avg = delay;}
         else {
             delay_avg = (1.0 - constants.delay_avg_p)*delay_avg + constants.delay_avg_p*delay;
         }
+
+        //add delay to stone data
+        event['data']['delay'] = delay;
         
         //track missed
         if (event_index!=null)
             missed+= event['id']-(event_index+1);
-        
+
         //update event_index
         event_index = event['id'];
+
+        db.Channel.all().then(function(channels) {
+            util.announce(client, channels, event);
+        });
     }
 }
 
