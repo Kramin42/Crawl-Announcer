@@ -11,8 +11,9 @@ var db        = {};
 if (config.use_env_variable) {
   var sequelize = new Sequelize(process.env[config.use_env_variable]);
 } else if (config.use_openshift_mysql_env) {
-  console.log('connecting to: '+process.env.OPENSHIFT_MYSQL_DB_URL);
-  var sequelize = new Sequelize(process.env.OPENSHIFT_MYSQL_DB_URL, {});
+  var uri = process.env.OPENSHIFT_MYSQL_DB_URL+process.env.OPENSHIFT_APP_NAME;
+  console.log('connecting to: '+uri);
+  var sequelize = new Sequelize(uri, {});
 } else {
   var sequelize = new Sequelize(config.database, config.username, config.password, config);
 }
