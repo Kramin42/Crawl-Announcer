@@ -200,7 +200,7 @@ function init_socketio() {
         console.log('socket connected');
         if (event_index!=null) {
             catchup_done = request(
-                {baseUrl: constants.pubsub_host,
+                {baseUrl: constants.pubsub_protocol+constants.pubsub_host,
                 url: '/event',
                 qs: {offset: event_index, limit: constants.catchup_limit},
                 resolveWithFullResponse: true
