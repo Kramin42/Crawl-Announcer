@@ -111,7 +111,7 @@ function command(cmd, args, chan, nick, authed) {
 
 function init_db() {
 	return db.sequelize.sync().then(function() {
-        db.Channel.all().then(function(channels) {
+        return db.Channel.all().then(function(channels) {
             if (channels.length==0) {
                 console.log('initializing empty db');
                 return sequelize_fixtures.loadFile('fixtures/default_channels.yml', db);
