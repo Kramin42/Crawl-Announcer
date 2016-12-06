@@ -111,11 +111,19 @@ function command(cmd, args, chan, nick, authed) {
 }
 
 function init_db() {
-	db.sequelize.sync();
-    return sequelize_fixtures.loadFile('fixtures/default_channels.yml', db).then(function(){
+	return db.sequelize.sync().then(function() {
         db.Channel.all().then(function(channels) {
-            console.log('Channels: ' + channels.map(function(chan){return chan.name;}).join(', '));
-            console.log(channels[0].filter);
+            if (channels.length==0) {
+                console.log('initializing empty db');
+                return sequelize_fixtures.loadFile('fixtures/default_channels.yml', db);
+            } else {
+                return Promise.resolve();
+            }
+        }).then(function(){
+            db.Channel.all().then(function(channels) {
+                console.log('Channels: ' + channels.map(function(chan){return chan.name;}).join(', '));
+                console.log(channels[0].filter);
+            });
         });
     });
 }
@@ -245,11 +253,3 @@ init_db()
 .then(init_socketio);
 
 init_web();
-
-// TODO: use a better way of keeping it up
-// not restarting could leave it in a broken state
-// need to find out how to catch the ECONNRESET errors
-process.on('uncaughtException', function (err) {
-    console.error(err.stack);
-    console.log("Node NOT Exiting...");
-});
