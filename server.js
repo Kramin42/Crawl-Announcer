@@ -2,7 +2,6 @@
 var http = require('http');
 var path = require('path');
 var Promise = require("bluebird");
-//var request = require('bluebird').promisifyAll(require('request'));
 var request = require('request-promise');
 
 var async = require('async');
