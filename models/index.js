@@ -10,6 +10,8 @@ var db        = {};
 
 if (config.use_env_variable) {
   var sequelize = new Sequelize(process.env[config.use_env_variable]);
+} else if (config.use_openshift_mysql_env) {
+  var sequelize = new Sequelize(process.env.OPENSHIFT_MYSQL_DB_URL, {});
 } else {
   var sequelize = new Sequelize(config.database, config.username, config.password, config);
 }

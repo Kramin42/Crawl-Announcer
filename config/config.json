@@ -11,12 +11,7 @@
     "sasl": false
   },
   "production": {
-    "username": "username",
-    "password": "password",
-    "database": "database",
-    "host": "localhost",
-    "dialect": "sqlite",
-    "storage": "./store.db",
+    "use_openshift_mysql_env": true,
     "logging": false,
     "irc-nick": "Postquell",
     "sasl": true
