@@ -141,7 +141,7 @@ function init_irc() {
         client = new irc.Client(options.server, options.nick, options);
         
         client.addListener('message', function (from, to, message) {
-            console.log(message);
+            //console.log(message);
             var authed = message[0] == '+';
             message = message.substring(1)
             var chan = to;
