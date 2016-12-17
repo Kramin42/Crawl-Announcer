@@ -14,7 +14,6 @@
     "use_openshift_mysql_env": true,
     "logging": false,
     "irc-nick": "Postquell",
-    "sasl": true,
-    "logging": false
+    "sasl": true
   }
 }

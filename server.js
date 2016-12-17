@@ -19,7 +19,7 @@ var db = require("./models");
 var client;
 var delay_avg;
 var missed = 0;
-var event_index; // keeps track of what event I processed last
+var event_index = null; // keeps track of what event I processed last
 var catchup_done = Promise.resolve(true);
 
 function command(cmd, args, chan, nick, authed) {
@@ -172,7 +172,7 @@ function init_irc() {
 function process_crawlevent(event) {
     console.log(event['id']);
     if (event['id']==null) {console.log('Error: got event with id: null');}
-    if (event_index==null || event_index<event['id']) {// don't double announce
+    if (event_index==null || event_index<event['id']) {// don't double announce after catchup
         //track delay
         var delay = Math.floor(Date.now() / 1000) - parseInt(event['time']);
         if (delay_avg==null) {delay_avg = delay;}
@@ -184,10 +184,11 @@ function process_crawlevent(event) {
         event['data']['delay'] = delay;
         
         //track missed
-        if (event_index!=null)
+        if (event_index!=null) {
             var missed_delta = event['id']-(event_index+1);
             if (missed_delta>0) {console.log('missed '+missed_delta+' from '+(event_index+1));}
             missed+= missed_delta;
+        }
 
         //update event_index
         event_index = event['id'];
