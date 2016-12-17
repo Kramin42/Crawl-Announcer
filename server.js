@@ -185,7 +185,9 @@ function process_crawlevent(event) {
         
         //track missed
         if (event_index!=null)
-            missed+= event['id']-(event_index+1);
+            missed_delta = event['id']-(event_index+1);
+            if (missed_delta>0) {console.log('missed '+missed_delta+' from '+(event_index+1));}
+            missed+= missed_delta;
 
         //update event_index
         event_index = event['id'];
@@ -193,6 +195,8 @@ function process_crawlevent(event) {
         db.Channel.all().then(function(channels) {
             util.announce(client, channels, event);
         });
+    } else {
+        console.log('skipping event '+event['id']);
     }
 }
 
