@@ -185,7 +185,7 @@ function process_crawlevent(event) {
         
         //track missed
         if (event_index!=null)
-            missed_delta = event['id']-(event_index+1);
+            var missed_delta = event['id']-(event_index+1);
             if (missed_delta>0) {console.log('missed '+missed_delta+' from '+(event_index+1));}
             missed+= missed_delta;
 
