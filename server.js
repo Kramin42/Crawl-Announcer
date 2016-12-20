@@ -192,6 +192,7 @@ function process_crawlevent(event) {
                 missed+= missed_delta;
                 //update event_index
                 event_index = event['id'];
+            }
             if (event['id']<event_index) {// a late event
                 missed-= 1;
             }
