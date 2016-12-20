@@ -20,6 +20,7 @@ var client;
 var delay_avg;
 var missed = 0;
 var event_index = null; // keeps track of what event I processed last
+var catchup_index = -1;
 var catchup_done = Promise.resolve(true);
 
 function command(cmd, args, chan, nick, authed) {
@@ -172,7 +173,7 @@ function init_irc() {
 function process_crawlevent(event) {
     console.log(event['id']);
     if (event['id']==null) {console.log('Error: got event with id: null');}
-    if (event_index==null || event_index<event['id']) {// don't double announce after catchup
+    if (event['id']>catchup_index) {// don't double announce after catchup
         //track delay
         var delay = Math.floor(Date.now() / 1000) - parseInt(event['time']);
         if (delay_avg==null) {delay_avg = delay;}
@@ -185,13 +186,18 @@ function process_crawlevent(event) {
         
         //track missed
         if (event_index!=null) {
-            var missed_delta = event['id']-(event_index+1);
-            if (missed_delta>0) {console.log('missed '+missed_delta+' from '+(event_index+1));}
-            missed+= missed_delta;
+            if (event['id']>event_index) {// gone forward
+                var missed_delta = event['id']-(event_index+1);
+                if (missed_delta>0) {console.log('missed '+missed_delta+' from '+(event_index+1));}
+                missed+= missed_delta;
+                //update event_index
+                event_index = event['id'];
+            if (event['id']<event_index) {// a late event
+                missed-= 1;
+            }
+        } else {
+            event_index = event['id'];
         }
-
-        //update event_index
-        event_index = event['id'];
 
         db.Channel.all().then(function(channels) {
             util.announce(client, channels, event);
@@ -219,6 +225,7 @@ function init_socketio() {
                 console.log('/event responded');
                 var events = JSON.parse(response.body)['results'];
                 events.forEach(process_crawlevent);
+                catchup_index = events[events.length-1]['id'];
                 return true;
             }).catch(console.error);
         }
