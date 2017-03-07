@@ -16,14 +16,15 @@ var util = require("./util.js");
 var db = require("./models");
 
 //globals
-var client;
+var clients = {};
+//var client;
 var delay_avg;
 var missed = 0;
 var event_index = null; // keeps track of what event I processed last
 var catchup_index = -1;
 var catchup_done = Promise.resolve(true);
 
-function command(cmd, args, chan, nick, authed) {
+function command(client, cmd, args, chan, nick, authed) {
     var admin = authed && constants.admins.indexOf(nick)>-1;
     console.log('command: ' + cmd + ', args: ' + args + ', admin: ' + admin);
 
@@ -110,6 +111,40 @@ function command(cmd, args, chan, nick, authed) {
     }
 }
 
+function handle_message(server, authed, from, to, message) {
+	console.log(from+'>'+to+': '+message);
+    var chan = to;
+    var pm = false;
+    var nick = from;
+    if (to==constants.nick) {
+        chan = from;
+        pm = true;
+    }
+    
+    if (message[0]=='$') {
+        var args = message.substring(1).split(' ');
+        command(clients[server], args[0], args.slice(1), chan, nick, authed);
+    }
+    
+    //various relaying to other ##crawl bots
+    db.Channel.findOne({where: {name: chan}}).then(function(channel) {
+    	if (channel!=null && channel.relay_enabled) {
+		    if (['!','.','=','&','?','^'].indexOf(message[0])!=-1) {// potential sequell query
+		    	console.log('relaying sequell query from '+channel.name);
+		    	var relay_str = '!RELAY -n 1 -channel '+chan+' -nick '+nick+' -prefix '+server+':'+chan+': '+message;
+		    	console.log(relay_str);
+		    	clients['chat.freenode.net'].say('Sequell', relay_str);
+		    }
+		}
+    });
+
+    if (pm && nick=='Sequell') {
+    	console.log(message);
+    	splitmsg = message.split(':');
+    	clients[splitmsg[0]].say(splitmsg[1], splitmsg.slice(2));
+    }
+}
+
 function init_db() {
 	return db.sequelize.sync().then(function() {
         return db.Channel.all().then(function(channels) {
@@ -130,7 +165,7 @@ function init_db() {
 
 function init_irc() {
     // irc client to post results in ##crawl
-    return db.Channel.all().then(function(channels) {
+    return db.Channel.findAll({where: {server: 'chat.freenode.net'}}).then(function(channels) {
     	var options = {
     		server: 'chat.freenode.net',
     		nick: constants.nick,
@@ -139,24 +174,12 @@ function init_irc() {
         	password: constants.password,
             channels: ['##kramell'].concat(channels.map(function(chan){return chan.name;}))
     	};
-        client = new irc.Client(options.server, options.nick, options);
+        var client = new irc.Client(options.server, options.nick, options);
         
         client.addListener('message', function (from, to, message) {
-            //console.log(message);
             var authed = message[0] == '+';
-            message = message.substring(1)
-            var chan = to;
-            var pm = false;
-            var nick = from;
-            if (to==constants.nick) {
-                chan = from;
-                pm = true;
-            }
-            
-            if (message[0]=='$') {
-                var args = message.substring(1).split(' ');
-                command(args[0], args.slice(1), chan, nick, authed);
-            }
+            message = message.substring(1);
+            handle_message('chat.freenode.net', authed, from, to, message);
         });
 
         client.addListener('registered', function(message) {
@@ -167,6 +190,31 @@ function init_irc() {
         client.on('error', function(e) {
             console.log(e);
         });
+        clients['chat.freenode.net'] = client;
+    }).then(function() {
+    	return db.Channel.findAll({where: {server: 'irc.servercentral.net'}}).then(function(channels) {
+	    	var options = {
+	    		server: 'irc.servercentral.net',
+	    		nick: constants.nick,
+	            channels: ['##kramell'].concat(channels.map(function(chan){return chan.name;}))
+	    	};
+	        var client = new irc.Client(options.server, options.nick, options);
+	        
+	        client.addListener('message', function (from, to, message) {
+	            var authed = true;
+	            handle_message('irc.servercentral.net', authed, from, to, message);
+	        });
+
+	        // client.addListener('registered', function(message) {
+	        //     client.send('CAP','REQ','identify-msg');
+	        //     client.send('CAP','END');
+	        // });
+	        
+	        client.on('error', function(e) {
+	            console.log(e);
+	        });
+	        clients['irc.servercentral.net'] = client;
+	    });
     });
 }
 
@@ -201,7 +249,7 @@ function process_crawlevent(event) {
         }
 
         db.Channel.all().then(function(channels) {
-            util.announce(client, channels, event);
+            util.announce(clients, channels, event);
         });
     } else {
         console.log('skipping event '+event['id']);

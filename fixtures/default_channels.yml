@@ -1,6 +1,7 @@
 fixtures:
     - model: Channel
       data:
+        server: chat.freenode.net
         name: "##crawl-announcements"
         relay_enabled: false
         filter: |
@@ -19,5 +20,12 @@ fixtures:
                         {"ktyp": "winning"}
                     ]
                 }
-# add server list later
-#                     "src": {"$in": ["CPO", "CBRO", "CUE", "CAO"]},
+    - model: Channel
+      data:
+        server: irc.servercentral.net
+        name: "#awbwrising"
+        relay_enabled: true
+        filter: |
+                {
+                    "name": {"$in": ["walkerboh", "morganleah", "glenstorm", "snack", "quackv2", "rzimodnar", "mrclean", "themute", "rast", "awbwrobin", "adder", "suckerboh", "n1000", "caleba", "hyperboh", "ripandtear", "lasty", "moose", "hypermorgan", "rchandra", "hyperrchandra", "prozacelf", "kramin", "vible", "frremovefelids", "blazinghand", "hyperblazinghand", "hypersnackflakattack", "hyperkramin", "hyperlasty"]}
+                }

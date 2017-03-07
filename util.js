@@ -60,9 +60,9 @@ function match_filter(stone, filter) {
                         var op = Object.keys(filter[key])[0];
                         switch (op) {
                             case '$in':
-                                if (filter[key][op].indexOf(stone[key])==-1) {
-                                    //console.log('failed key: '+key+', value: '+JSON.stringify(filter[key])+', was: '+stone[key]);
-                                    return false;
+                                if (!filter[key][op].some(function(el) {return stone[key].toLowerCase()==el.toLowerCase();})) {
+                                	//console.log('failed key: '+key+', value: '+JSON.stringify(filter[key])+', was: '+stone[key]);
+                                	return false;
                                 }
                                 break;
                             case '$gt':
@@ -110,7 +110,7 @@ function colour(announcement, stone, channel) {
     return announcement; // TODO: add colouring system
 }
 
-function announce(client, channels, event) {
+function announce(clients, channels, event) {
     var stone = event['data'];
     stone['src'] = event['src_abbr'].toUpperCase();
     var announcement = event['type'] == 'milestone' ? stone_format(stone) : log_format(stone);
@@ -118,7 +118,7 @@ function announce(client, channels, event) {
     //announcement = [announcement[0], announcement.slice(1)].join('\u200B');
     channels.forEach(function(channel) {
         if (filter(stone, channel)) {
-            client.say(channel.name, colour(announcement, stone, channel));
+            clients[channel.server].say(channel.name, colour(announcement, stone, channel));
         }
     });
 }
