@@ -141,7 +141,7 @@ function handle_message(server, authed, from, to, message) {
     if (pm && nick=='Sequell') {
     	console.log(message);
     	splitmsg = message.split(':');
-    	clients[splitmsg[0]].say(splitmsg[1], splitmsg.slice(2));
+    	clients[splitmsg[0]].say(splitmsg[1], splitmsg.slice(2).join(':'));
     }
 }
 
