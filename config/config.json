@@ -7,7 +7,7 @@
     "dialect": "sqlite",
     "storage": "./store-dev.db",
     "logging": false,
-    "irc-nick": "Postquell-dev",
+    "irc-nick": "Postquell",
     "sasl": false
   },
   "production": {

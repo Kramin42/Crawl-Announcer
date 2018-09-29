@@ -18,20 +18,50 @@ var db = require("./models");
 //globals
 var clients = {};
 //var client;
-var delay_avg;
+var delay_avg = null;
 var missed = 0;
 var event_index = null; // keeps track of what event I processed last
 var catchup_index = -1;
 var catchup_done = Promise.resolve(true);
 
+// CSDC ##csdc announcements stuff
+csdc_filter_url = 'http://csclub.uwaterloo.ca/~ebering/crawl/csdc/postquell.json';
+csdc_channel_name = '##csdc';
+csdc_filter_update_delay = 60; //seconds
+csdc_running = true;
+
 function command(client, cmd, args, chan, nick, authed) {
     var admin = authed && constants.admins.indexOf(nick)>-1;
+    if (chan!=='##crawl') {admin=true;}
     console.log('command: ' + cmd + ', args: ' + args + ', admin: ' + admin);
 
     if (cmd=='stats' && admin) {
         client.say(chan, [
             'average delay recently: ' + delay_avg.toFixed(1) + ' sec',
             'total missed since restart: ' + missed].join('; '));
+    }
+    
+    if (cmd=='relay' && admin) {
+        var help_string = 'Usage: relay <enable|disable>';
+        if (args.length==0) {
+            client.say(chan, help_string);
+        } else {
+            db.Channel.findOne({where: {name: chan}}).then(function(channel) {
+                if (args[0] === 'enable') {
+                    channel.relay_enabled = true;
+                    channel.save().then(function(val) {
+                        client.say(chan, 'Relay enabled in channel '+channel.name);
+                    });
+                } else if (args[0] === 'disable') {
+                    channel.relay_enabled = false;
+                    channel.save().then(function(val) {
+                        client.say(chan, 'Relay disabled in channel '+channel.name);
+                    });
+                } else {
+                    client.say(chan, help_string);
+                }
+            });
+        }
     }
 
     if (cmd=='filter' && admin) {
@@ -112,7 +142,7 @@ function command(client, cmd, args, chan, nick, authed) {
 }
 
 function handle_message(server, authed, from, to, message) {
-	console.log(from+'>'+to+': '+message);
+    //console.log(from+'>'+to+': '+message);
     var chan = to;
     var pm = false;
     var nick = from;
@@ -130,16 +160,16 @@ function handle_message(server, authed, from, to, message) {
     db.Channel.findOne({where: {name: chan}}).then(function(channel) {
     	if (channel!=null && channel.relay_enabled) {
 		    if (['!','.','=','&','?','^'].indexOf(message[0])!=-1) {// potential sequell query
-		    	console.log('relaying sequell query from '+channel.name);
+		    	//console.log('relaying sequell query from '+channel.name);
 		    	var relay_str = '!RELAY -n 1 -channel '+chan+' -nick '+nick+' -prefix '+server+':'+chan+': '+message;
-		    	console.log(relay_str);
+		    	//console.log(relay_str);
 		    	clients['chat.freenode.net'].say('Sequell', relay_str);
 		    }
 		}
     });
 
     if (pm && nick=='Sequell') {
-    	console.log(message);
+    	//console.log('Sequell: '+message);
     	splitmsg = message.split(':');
     	clients[splitmsg[0]].say(splitmsg[1], splitmsg.slice(2).join(':'));
     }
@@ -219,7 +249,7 @@ function init_irc() {
 }
 
 function process_crawlevent(event) {
-    console.log(event['id']);
+    //console.log(event['id']);
     if (event['id']==null) {console.log('Error: got event with id: null');}
     if (event['id']>catchup_index) {// don't double announce after catchup
         //track delay
@@ -252,15 +282,16 @@ function process_crawlevent(event) {
             util.announce(clients, channels, event);
         });
     } else {
-        console.log('skipping event '+event['id']);
+        //console.log('skipping event '+event['id']);
     }
 }
 
 function init_socketio() {
+    //console.log('socketio connecting to '+constants.pubsub_host+'...');
     // socketio to get events from the PubSub service
-    var socket = io.connect(constants.pubsub_host);
+    var socket = io.connect(constants.pubsub_protocol+constants.pubsub_host);
     socket.on('connect', function () {
-        console.log('socket connected');
+        //console.log('socket connected');
         if (event_index!=null) {
             catchup_done = request(
                 {baseUrl: constants.pubsub_protocol+constants.pubsub_host,
@@ -271,7 +302,7 @@ function init_socketio() {
             .then(function (response) {
                 if (response.statusCode != 200)
                     throw new Error('Unsuccessful attempt. Code: ' + response.statusCode);
-                console.log('/event responded');
+                //console.log('/event responded');
                 var events = JSON.parse(response.body)['results'];
                 events.forEach(process_crawlevent);
                 catchup_index = events[events.length-1]['id'];
@@ -281,15 +312,15 @@ function init_socketio() {
     });
     
     socket.on('error', function(err) {
-        console.log("Caught socketio error: ");
+        //console.log("Caught socketio error: ");
         console.log(err.stack);
     });
     
     socket.on('crawlevent', function(data) {
-        console.log('got crawlevent');
+        //console.log('got crawlevent');
         data = JSON.parse(data);
         catchup_done.then(function() {
-            console.log('announcing from crawlevent');
+            //console.log('announcing from crawlevent');
             data.forEach(process_crawlevent);
         });
     });
@@ -300,7 +331,7 @@ function init_web() {
     var server = http.createServer(router);
     router.use(express.static(path.resolve(__dirname, 'client')));
     
-    server.listen(process.env.OPENSHIFT_NODEJS_PORT || process.env.PORT || 8080, process.env.OPENSHIFT_NODEJS_IP || process.env.IP || '127.0.0.1', function(){
+    server.listen(process.env.OPENSHIFT_NODEJS_PORT || process.env.PORT || 8081, process.env.OPENSHIFT_NODEJS_IP || process.env.IP || '127.0.0.1', function(){
         var addr = server.address();
         console.log("Server listening at", addr.address + ":" + addr.port);
     });
@@ -309,6 +340,28 @@ function init_web() {
         console.log("Caught server error:");
         console.log(err.stack);
     });
+
+    if (csdc_running) {
+        update_csdc_filter_loop = function() {
+            request(
+                {url: csdc_filter_url,
+                resolveWithFullResponse: true
+                })
+            .then(function (response) {
+                if (response.statusCode != 200)
+                    throw new Error('Unsuccessful attempt. Code: ' + response.statusCode);
+                return db.Channel.findOne({where: {name: csdc_channel_name}}).then(function(channel) {
+                    channel.filter = response.body;
+                    console.log(channel.filter);
+                    return channel.save();
+                });
+            }).catch(console.error)
+            .then(function () {
+                setTimeout(update_csdc_filter_loop, csdc_filter_update_delay*1000);
+            });
+        }
+        update_csdc_filter_loop();
+    }
 }
 
 init_db()

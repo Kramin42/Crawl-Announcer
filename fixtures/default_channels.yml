@@ -22,8 +22,8 @@ fixtures:
                 }
     - model: Channel
       data:
-        server: irc.servercentral.net
-        name: "#awbwrising"
+        server: chat.freenode.net
+        name: "##awbwrising"
         relay_enabled: true
         filter: |
                 {
